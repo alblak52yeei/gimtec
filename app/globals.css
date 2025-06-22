@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Импорт шрифта Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  body {
+    @apply bg-gray-50 text-primary-800;
+  }
+}
+
+@layer components {
+  /* Стили для кнопок согласно дизайну */
+  .btn-primary {
+    @apply bg-primary-500 text-white px-3 py-2 rounded text-base font-normal hover:bg-primary-600 transition-colors;
+  }
+  
+  .btn-ghost {
+    @apply bg-primary-600 bg-opacity-10 text-primary-800 text-opacity-80 px-3 py-2 rounded text-base font-normal hover:bg-opacity-20 transition-colors;
+  }
+  
+  .btn-clear {
+    @apply bg-transparent text-primary-800 text-opacity-80 p-2 rounded text-base font-normal hover:bg-primary-600 hover:bg-opacity-5 transition-colors;
+  }
+  
+  /* Стили для полей ввода */
+  .input-field {
+    @apply w-full px-3 py-2.5 bg-white border border-primary-600 border-opacity-30 rounded text-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 focus:border-primary-500;
+  }
+  
+  /* Стили для селекта */
+  .select-field {
+    @apply w-full px-3 py-2.5 bg-white border border-primary-600 border-opacity-30 rounded text-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 focus:border-primary-500;
+  }
+  
+  /* Стили для календаря */
+  .calendar-cell {
+    @apply w-8 h-8 flex items-center justify-center text-base text-primary-800 rounded-full cursor-pointer hover:bg-gray-100 transition-colors;
+  }
+  
+  .calendar-cell.today {
+    @apply border border-primary-500 bg-secondary-100;
+  }
+  
+  .calendar-cell.available {
+    @apply bg-secondary-500 text-white;
+  }
+  
+  .calendar-cell.disabled {
+    @apply text-primary-800 text-opacity-25 cursor-not-allowed hover:bg-transparent;
+  }
+}
+
+/* Скрытие стрелок у input[type="number"] */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+} 
