@@ -20,6 +20,18 @@ export interface Forecast {
   model_code: string;
 }
 
+// Тип для одной записи метрик (новый формат API)
+export interface MetricEntry {
+  model_code: string;
+  model_version: number;
+  forecast_start_date: string;
+  forecast_end_date: string;
+  rmse: number;
+  mape: number;
+  mae: number;
+}
+
+// Обновленный тип для метрик модели 
 export interface ModelMetrics {
   model_code: string;
   mae: number[];
@@ -36,6 +48,9 @@ export type ForecastsResponse = Forecast[];
 
 // Тип для ответа GIM API get_forecasts/{model_code}
 export type GIMForecastsResponse = GIMForecast[];
+
+// Тип для ответа нового API метрик
+export type NewMetricsResponse = MetricEntry[];
 
 // Тип для ответа API get_model_metrics/{model_code}
 export type MetricsResponse = ModelMetrics;
