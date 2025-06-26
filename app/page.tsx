@@ -25,10 +25,28 @@ export default function HomePage() {
   const [mapNumber, setMapNumber] = useState<number>(DEFAULT_MAP_NUMBER);
 
   // Функция скачивания NPZ файла
-  const downloadNpzFile = () => {
-    if (selectedForecast) {
-      const url = API_ENDPOINTS.FORECAST_IMAGE(selectedForecast.toString(), mapNumber);
-      window.open(url, '_blank');
+  const downloadNpzFile = async () => {
+    if (selectedForecast && selectedModel) {
+      try {
+        const url = API_ENDPOINTS.GET_FORECAST_OBJECT(selectedForecast.toString());
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `forecast_${selectedModel}.npz`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+      } catch (error) {
+        console.error('Ошибка при скачивании файла:', error);
+      }
     }
   };
 
