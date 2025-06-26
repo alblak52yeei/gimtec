@@ -1,0 +1,45 @@
+name: CI/CD Deploy
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        # Добавьте команды установки зависимостей для вашего проекта
+        # Например для Node.js: npm install
+        # Для Python: pip install -r requirements.txt
+        echo "Installing dependencies..."
+
+    - name: Run tests
+      run: |
+        # Добавьте команды для запуска тестов
+        # Например: npm test или python -m pytest
+        echo "Running tests..."
+
+    - name: Build project
+      run: |
+        # Добавьте команды сборки проекта
+        # Например: npm run build
+        echo "Building project..."
+
+    - name: Deploy with Docker Compose
+      run: |
+        # Запуск Docker Compose деплоя
+        chmod +x ./deploy.sh
+        ./deploy.sh
+
+    - name: Notify completion
+      run: |
+        echo "Deployment completed successfully!"
+        # Можно добавить уведомления в Slack, Telegram и т.д.
