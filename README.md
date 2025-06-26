@@ -37,7 +37,7 @@ npm run dev
 
 ```bash
 # Сборка и запуск через Docker Compose
-docker-compose up --build
+docker compose up --build
 
 # Или сборка отдельного образа
 docker build -t gim-frontend .
