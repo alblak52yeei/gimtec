@@ -82,8 +82,7 @@ export function ForecastImage({ forecastId, mapNumber, className }: ForecastImag
       </div>
 
       {/* Информация о карте */}
-      <div className="mt-2 text-xs text-gray-500">
-        <p>Прогноз ID: {forecastId}</p>
+      <div className="mt-3 text-xs text-gray-500">
         <p>Номер карты: {mapNumber} из 24</p>
       </div>
     </div>

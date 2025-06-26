@@ -18,8 +18,8 @@ export default function HomePage() {
     selectForecastByDate 
   } = useForecasts(selectedModel);
   
-  // Хук для работы с метриками на основе выбранной модели
-  const { metrics } = useMetrics(selectedModel);
+  // Хук для работы с метриками на основе выбранной модели и даты
+  const { metrics } = useMetrics(selectedModel, selectedForecast, forecasts);
   
   // Локальное состояние для номера карты
   const [mapNumber, setMapNumber] = useState<number>(DEFAULT_MAP_NUMBER);
@@ -101,7 +101,14 @@ export default function HomePage() {
           </div>
 
           {/* Нижняя часть: Метрики */}
-          <MetricsSection metrics={metrics} />
+          <MetricsSection 
+            metrics={metrics} 
+            selectedForecastDate={
+              selectedForecast && forecasts.length > 0 
+                ? forecasts.find(f => f.id === selectedForecast)?.forecast_start_date 
+                : undefined
+            } 
+          />
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@ interface MetricsChartProps {
   metrics: ModelMetrics;
   title: string;
   className?: string;
+  selectedDate?: string;
 }
 
 // Цвета для разных типов метрик согласно дизайну
@@ -34,7 +35,27 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export function MetricsChart({ metrics, title, className }: MetricsChartProps) {
+// Функция для создания полного диапазона дат между минимальной и максимальной датой
+const createFullDateRange = (dates: string[]) => {
+  if (dates.length === 0) return [];
+  
+  // Очищаем даты от времени и сортируем
+  const cleanDates = dates.map(date => date.split('T')[0]).sort();
+  const startDate = new Date(cleanDates[0]);
+  const endDate = new Date(cleanDates[cleanDates.length - 1]);
+  
+  const dateRange = [];
+  const currentDate = new Date(startDate);
+  
+  while (currentDate <= endDate) {
+    dateRange.push(new Date(currentDate).toISOString().split('T')[0]);
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return dateRange;
+};
+
+export function MetricsChart({ metrics, title, className, selectedDate }: MetricsChartProps) {
   // Проверяем наличие данных
   if (!metrics?.dates?.length) {
     return (
@@ -44,34 +65,64 @@ export function MetricsChart({ metrics, title, className }: MetricsChartProps) {
     );
   }
   
-  // Подготавливаем данные для графика с правильным форматированием дат
-  const chartData = metrics.dates.map((date, index) => {
+  // Создаем полный диапазон дат (с пропусками)
+  const fullDateRange = createFullDateRange(metrics.dates);
+  
+  // Создаем карту исходных данных для быстрого поиска
+  const dataMap = new Map();
+  metrics.dates.forEach((date, index) => {
+    // Приводим дату к формату YYYY-MM-DD (убираем время если есть)
+    const cleanDate = date.split('T')[0];
+    dataMap.set(cleanDate, {
+      mae: metrics.mae[index],
+      mape: metrics.mape[index],
+      rmse: metrics.rmse[index]
+    });
+  });
+  
+  // Подготавливаем данные для графика с пропусками для отсутствующих дат
+  const chartData = fullDateRange.map((date) => {
     const dateObj = new Date(date);
-    
-    // Проверяем, является ли дата корректной
     const isValidDate = !isNaN(dateObj.getTime());
     const formattedDate = isValidDate 
       ? dateObj.toLocaleDateString('ru', { day: '2-digit', month: 'short' })
       : 'Некорр. дата';
     
-    return {
+    // Проверяем, есть ли данные на эту дату
+    const dataForDate = dataMap.get(date);
+    
+    const chartPoint = {
       date: formattedDate,
       fullDate: isValidDate 
         ? dateObj.toLocaleDateString('ru', { day: '2-digit', month: 'long', year: 'numeric' })
         : 'Некорректная дата',
-      MAE: metrics.mae[index] === undefined || isNaN(metrics.mae[index]) ? null : Number(metrics.mae[index].toFixed(2)),
-      MAPE: metrics.mape[index] === undefined || isNaN(metrics.mape[index]) ? null : Number(metrics.mape[index].toFixed(2)), 
-      RMSE: metrics.rmse[index] === undefined || isNaN(metrics.rmse[index]) ? null : Number(metrics.rmse[index].toFixed(2))
+      MAE: dataForDate && dataForDate.mae !== undefined && !isNaN(dataForDate.mae) 
+        ? Number(dataForDate.mae.toFixed(2)) 
+        : null,
+      MAPE: dataForDate && dataForDate.mape !== undefined && !isNaN(dataForDate.mape) 
+        ? Number(dataForDate.mape.toFixed(2)) 
+        : null, 
+      RMSE: dataForDate && dataForDate.rmse !== undefined && !isNaN(dataForDate.rmse) 
+        ? Number(dataForDate.rmse.toFixed(2)) 
+        : null
     };
+    
+    return chartPoint;
   });
+  
+  // Проверяем есть ли вообще данные для отображения
+  const hasData = chartData.some(point => 
+    point.MAE !== null || point.MAPE !== null || point.RMSE !== null
+  );
 
-  // Определяем диапазон дат для подзаголовка, с учетом возможных некорректных дат
+  // Определяем диапазон дат для подзаголовка
   let startDateStr = 'Н/Д';
   let endDateStr = 'Н/Д';
   
   try {
-    const startDate = new Date(metrics.dates[0]);
-    const endDate = new Date(metrics.dates[metrics.dates.length - 1]);
+    const sortedDates = [...metrics.dates].sort();
+    const startDate = new Date(sortedDates[0]);
+    const endDate = new Date(sortedDates[sortedDates.length - 1]);
     
     if (!isNaN(startDate.getTime())) {
       startDateStr = startDate.toLocaleDateString('ru', { day: 'numeric', month: 'long' });
@@ -105,7 +156,7 @@ export function MetricsChart({ metrics, title, className }: MetricsChartProps) {
               top: 20,
               right: 30,
               left: 20,
-              bottom: 40,
+              bottom: 60, // Увеличиваем отступ для подписей
             }}
           >
             {/* Сетка */}
@@ -117,23 +168,41 @@ export function MetricsChart({ metrics, title, className }: MetricsChartProps) {
               vertical={false}
             />
             
-            {/* Ось X */}
+            {/* Вертикальная линия для выбранной даты */}
+            {selectedDate && (
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                stroke="#FF6B6B" 
+                opacity={0.8}
+                horizontal={false}
+                vertical={true}
+                verticalPoints={[
+                  chartData.findIndex(point => {
+                    const pointDate = new Date(point.fullDate);
+                    const selected = new Date(selectedDate);
+                    return pointDate.toDateString() === selected.toDateString();
+                  })
+                ].filter(index => index >= 0)}
+              />
+            )}
+            
+            {/* Ось X - возвращаем подписи, но делаем их реже */}
             <XAxis 
               dataKey="date"
               axisLine={false}
               tickLine={false}
               tick={{ 
-                fontSize: 14, 
+                fontSize: 12, 
                 fill: '#7C828A',
                 fontFamily: 'Nunito Sans, sans-serif'
               }}
               angle={-45}
               textAnchor="end"
-              height={60}
-              interval={Math.max(1, Math.ceil(chartData.length / 15))} // Увеличиваем количество меток до ~15
+              height={50}
+              interval={Math.max(0, Math.floor(chartData.length / 8))} // Показываем максимум 8 подписей
             />
             
-            {/* Ось Y */}
+            {/* Ось Y - всегда начинается с 0 */}
             <YAxis 
               axisLine={false}
               tickLine={false}
@@ -143,8 +212,8 @@ export function MetricsChart({ metrics, title, className }: MetricsChartProps) {
                 fontFamily: 'Nunito Sans, sans-serif'
               }}
               dx={-10}
-              domain={['dataMin - 1', 'dataMax + 1']}
-              tickFormatter={(value) => value.toFixed(2)} // Округление до сотых
+              domain={[0, 'dataMax + 1']} // Всегда начинаем с 0
+              tickFormatter={(value) => value.toFixed(2)}
             />
 
             {/* Тултип */}
@@ -156,10 +225,10 @@ export function MetricsChart({ metrics, title, className }: MetricsChartProps) {
                 type="monotone" 
                 dataKey="MAE" 
                 stroke={chartColors.MAE}
-                strokeWidth={3}
-                dot={{ fill: chartColors.MAE, strokeWidth: 0, r: 5 }}
-                activeDot={{ r: 7, fill: chartColors.MAE, strokeWidth: 2, stroke: '#fff' }}
-                connectNulls={false} // Делаем разрывы при отсутствии данных
+                strokeWidth={2}
+                dot={{ fill: chartColors.MAE, strokeWidth: 2, stroke: '#fff', r: 6 }}
+                activeDot={{ r: 8, fill: chartColors.MAE, strokeWidth: 2, stroke: '#fff' }}
+                connectNulls={false} // НЕ соединяем null значения - создаем пропуски
               />
             )}
             
@@ -168,10 +237,10 @@ export function MetricsChart({ metrics, title, className }: MetricsChartProps) {
                 type="monotone" 
                 dataKey="MAPE" 
                 stroke={chartColors.MAPE}
-                strokeWidth={3}
-                dot={{ fill: chartColors.MAPE, strokeWidth: 0, r: 5 }}
-                activeDot={{ r: 7, fill: chartColors.MAPE, strokeWidth: 2, stroke: '#fff' }}
-                connectNulls={false} // Делаем разрывы при отсутствии данных
+                strokeWidth={2}
+                dot={{ fill: chartColors.MAPE, strokeWidth: 2, stroke: '#fff', r: 6 }}
+                activeDot={{ r: 8, fill: chartColors.MAPE, strokeWidth: 2, stroke: '#fff' }}
+                connectNulls={false} // НЕ соединяем null значения - создаем пропуски
               />
             )}
             
@@ -180,10 +249,10 @@ export function MetricsChart({ metrics, title, className }: MetricsChartProps) {
                 type="monotone" 
                 dataKey="RMSE" 
                 stroke={chartColors.RMSE}
-                strokeWidth={3}
-                dot={{ fill: chartColors.RMSE, strokeWidth: 0, r: 5 }}
-                activeDot={{ r: 7, fill: chartColors.RMSE, strokeWidth: 2, stroke: '#fff' }}
-                connectNulls={false} // Делаем разрывы при отсутствии данных
+                strokeWidth={2}
+                dot={{ fill: chartColors.RMSE, strokeWidth: 2, stroke: '#fff', r: 6 }}
+                activeDot={{ r: 8, fill: chartColors.RMSE, strokeWidth: 2, stroke: '#fff' }}
+                connectNulls={false} // НЕ соединяем null значения - создаем пропуски
               />
             )}
           </LineChart>
