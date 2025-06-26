@@ -24,6 +24,7 @@ fi
 echo "Синхронизация файлов..."
 git pull origin main 2>/dev/null || echo "Git pull пропущен"
 
+
 # Запуск без пересборки
 echo "Запуск контейнеров..."
 if command -v docker compose &> /dev/null; then
