@@ -16,28 +16,67 @@ export async function GET(
       );
     }
     
+    // Сначала получаем информацию о прогнозе для извлечения даты
+    let forecastDate = '';
+    let modelCode = '';
+    try {
+      const forecastInfoUrl = `https://services.simurg.space/gim-tec-forecast/get_forecasts`;
+      const forecastResponse = await fetch(forecastInfoUrl, {
+        method: 'GET',
+        cache: 'no-store',
+      });
+      
+      if (forecastResponse.ok) {
+        const forecasts = await forecastResponse.json();
+        const forecast = forecasts.find((f: any) => f.id.toString() === forecast_id);
+        if (forecast) {
+          if (forecast.forecast_start_date) {
+            const date = new Date(forecast.forecast_start_date);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            forecastDate = `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
+          }
+          if (forecast.model_code) {
+            modelCode = forecast.model_code;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Не удалось получить информацию о прогнозе для имени файла:', error);
+    }
+    
     // Правильный URL для получения NPZ данных согласно документации
     const apiUrl = `https://services.simurg.space/gim-tec-forecast/get_forecast_npz/${forecast_id}`;
-    console.log(`Отправляем запрос на: ${apiUrl}`);
-    
     const response = await fetch(apiUrl, {
       method: 'GET',
       cache: 'no-store',
     });
-    
-    console.log(`Ответ от GIM API: ${response.status} ${response.statusText}`);
-    
+
     if (!response.ok) {
       throw new Error(`API ошибка: ${response.status} ${response.statusText}`);
     }
     
     const dataBuffer = await response.arrayBuffer();
     console.log(`Получен NPZ файл размером: ${dataBuffer.byteLength} байт`);
+
+    // Формируем имя файла в старом формате с моделью и датой/временем
+    let fileName = `forecast_${forecast_id}.npz`;
+    if (modelCode && forecastDate) {
+      fileName = `forecast_${modelCode}_${forecastDate}.npz`;
+    } else if (modelCode) {
+      fileName = `forecast_${modelCode}.npz`;
+    } else if (forecastDate) {
+      fileName = `forecast_${forecast_id}_${forecastDate}.npz`;
+    }
     
     return new NextResponse(dataBuffer, {
       headers: {
         'Content-Type': 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="forecast_${forecast_id}.npz"`,
+        'Content-Disposition': `attachment; filename="${fileName}"`,
         'Content-Length': dataBuffer.byteLength.toString(),
       },
     });

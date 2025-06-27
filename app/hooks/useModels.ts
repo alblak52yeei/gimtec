@@ -23,9 +23,17 @@ export function useModels() {
         
         setModels(data);
         
-        // Автоматически выбираем первую модель
-        const firstModel = data[0];
-        setSelectedModel(firstModel.code);
+        // Ищем модель "NN (F10.7, 7 дней)" для установки по умолчанию
+        const defaultModel = data.find(model => model.name === 'NN (F10.7, 7 дней)');
+        
+        if (defaultModel) {
+          // Устанавливаем модель "NN (F10.7, 7 дней)" по умолчанию
+          setSelectedModel(defaultModel.code);
+        } else {
+          // Если модель не найдена, выбираем первую доступную
+          const firstModel = data[0];
+          setSelectedModel(firstModel.code);
+        }
         
       } catch (err: any) {
         console.error('Ошибка загрузки моделей:', err);
